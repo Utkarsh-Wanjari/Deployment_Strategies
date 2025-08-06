@@ -51,3 +51,11 @@ PLATFORM=$(uname -s)_$ARCH
 curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
 tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
 sudo install -m 0755 /tmp/eksctl /usr/local/bin
+
+☁️ Create EKS Cluster
+eksctl create cluster --name irondome --node-type t2.medium --nodes 2 --region us-east-1
+
+🧹 Clean Up
+ eksctl delete cluster --name <cluster-name> --region <region>
+
+

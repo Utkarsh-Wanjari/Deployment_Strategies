@@ -28,14 +28,14 @@ kubectl apply -f online-shop-green-deployment.yaml
 
 ###  Access Applications via Port Forwarding
 
-# Blue
+#### Blue
 kubectl port-forward --address 0.0.0.0 svc/online-shop-blue-deployment-service 30001:3001 -n blue-green-ns &
 
-# Green
+#### Green
 kubectl port-forward --address 0.0.0.0 svc/online-shop-green-deployment-service 30000:3000 -n blue-green-ns &
 
 ###  Switch Traffic
-Edit online-shop-without-footer-blue-deployment.yaml service selector to online-shop-green, and re-apply:
+#### Edit online-shop-without-footer-blue-deployment.yaml service selector to online-shop-green, and re-apply:
 
 kubectl apply -f online-shop-without-footer-blue-deployment.yaml
 

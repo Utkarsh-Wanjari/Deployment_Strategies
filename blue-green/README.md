@@ -1,18 +1,10 @@
+# 🟦🟩 Blue-Green Deployment Strategy
+
+This directory includes Kubernetes manifests and steps for implementing the **Blue-Green Deployment Strategy** in a Kubernetes environment using EKS.
 
 ---
 
-### 📄 `README.md` in `blue-green/`
-
-Provide instructions only relevant to Blue-Green:
-
-```markdown
-# Blue-Green Deployment Strategy
-
-This directory includes Kubernetes manifests and steps for implementing Blue-Green deployment.
-
----
-
-## 🧾 Files
+## 📁 Files
 
 - `blue-green-ns.yaml`: Namespace definition
 - `online-shop-without-footer-blue-deployment.yaml`: Blue environment deployment
@@ -22,7 +14,7 @@ This directory includes Kubernetes manifests and steps for implementing Blue-Gre
 
 ## 🚀 Steps to Deploy
 
-1. **Create Namespace**
-   ```bash
-   kubectl apply -f blue-green-ns.yaml
+### 1. Create Namespace
+
+kubectl apply -f blue-green-ns.yaml
 

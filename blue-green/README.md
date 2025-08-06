@@ -44,4 +44,8 @@ Blue: http://<EC2_PUBLIC_IP>:30001
 
 Green: http://<EC2_PUBLIC_IP>:30000
 
+###  Monitor   (open in new terminal)
+
+   watch kubectl get pods -n blue-green-ns
+
 

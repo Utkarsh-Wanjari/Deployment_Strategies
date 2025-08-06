@@ -40,13 +40,17 @@ This directory demonstrates how to perform a rolling update in Kubernetes.
 5. **Rolling Update**
 
     Modify deployment image and re-apply:
-    image: utkarsh1313/online_shop_without_footer
+    image: utkarsh1313/online_shop
+   To:
+     mage: utkarsh1313/online_shop_without_footer
 
     kubectl apply -f rolling-update-deployment.yaml
 
 
 🌐 Access
 URL: http://<EC2_PUBLIC_IP>:3000
+
+
 
 
 

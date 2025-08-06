@@ -1,0 +1,334 @@
+Deployment_Strategies
+
+Blue-Green Deployment Strategy
+
+Blue-Green deployment is a strategy used in Kubernetes (and other environments) to reduce downtime and risk when deploying new versions of an application.
+It involves maintaining two separate environments, which are referred to as Blue and Green.
+
+How it works ?
+
+Blue Environment: This is the live environment, where the current version of your application is running..
+Green Environment: The new version of the application is deployed to the Green environment. During this phase, there is no impact on the users accessing the Blue environment.
+Test the Green Environment: Once the Green environment is up, it is fully tested to ensure the new version works as expected.
+Switch traffic: After validating that the Green environment is stable, the routing of user traffic is switched from Blue to Green. Now, the Green environment becomes the live production environment, and users interact with the new version.
+
+Pro's    -   Instant rollout/rollback
+             Avoid versioning issue, change entire cluster state in one go
+
+Con's   -    Requires double the resources
+             Proper test of entire platform should be done before          releasing to the production environment.
+
+This deployment strategy is suitable for Production environment.
+
+  
+Prerequisites to try this:
+1.EC2 Instance with Ubuntu OS
+
+2.Docker installed & Configured
+  apt-get update
+  apt install docker.io -y
+  systemctl start docker 
+  systemctl enable docker
+  systemctl status docker
+
+3. Make cluster
+   install ekctl and kubectl
+   kubectl -- curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.32.3/2025-04-17/bin/linux/amd64/kubectl
+              chmod +x ./kubectl
+              mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$HOME/bin:$PATH
+              echo 'export PATH=$HOME/bin:$PATH' >> ~/.bashrc
+   eksctl -- 
+# for ARM systems, set ARCH to: `arm64`, `armv6` or `armv7`
+ARCH=amd64
+PLATFORM=$(uname -s)_$ARCH
+
+curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+
+# (Optional) Verify checksum
+curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
+
+tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+
+sudo install -m 0755 /tmp/eksctl /usr/local/bin && rm /tmp/eksctl
+
+create cluster from command 
+eksctl create cluster --name irondome --node-type t2.medium --nodes 2 --region=us-east-1
+
+and ensure before creating cluster role is attach on ec2-instance with permission "full-permission(adminaccess)"
+
+install aws cli
+aws configure
+
+
+-----------------------------------------------------------------------------------------------------------------
+and create ns with yaml 
+
+blue-green-ns.yml
+
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: blue-green-ns
+
+kubectl apply -f blue-green-ns.yml  --- Create a namespace first
+
+online-shop-without-footer-blue-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: online-shop-blue
+  name: online-shop-blue
+  namespace: blue-green-ns
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: online-shop-blue
+  template:
+    metadata:
+      labels:
+        app: online-shop-blue
+    spec:
+      containers:
+      - image: utkarsh1313/online_shop_without_footer
+        name: online-shop-blue
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: online-shop-blue-deployment-service
+  namespace: blue-green-ns
+spec:
+  selector:
+    app: online-shop-blue
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 3001
+      targetPort: 3000
+      nodePort: 30001
+   
+
+kubectl apply -f online-shop-without-footer-blue-deployment.yaml  --- Apply the deployment manifests
+
+3.online-shop-green-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: online-shop-green
+  name: online-shop-green
+  namespace: blue-green-ns
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: online-shop-green
+  template:
+    metadata:
+      labels:
+        app: online-shop-green
+    spec:
+      containers:
+      - image: utkarsh1313/online_shop
+        name: online-shop-green
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: online-shop-green-deployment-service
+  namespace: blue-green-ns
+spec:
+  selector:
+    app: online-shop-green
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      nodePort: 30000
+
+kubectl apply -f online-shop-green-deployment.yaml   ---- Apply the deployment manifests
+
+kubectl get all -n blue-green-ns  ---Run this command to get all resources created in blue-green-ns namespace
+
+It will deploy online shop web page without footer (Blue environment) and online shop web page with footer as a new feature (Green environment), now try to access the blue environment web page on browser
+
+Forward the online-shop-blue-deployment-service svc Port with Nodeport
+kubectl port-forward --address 0.0.0.0 svc/online-shop-blue-deployment-service 30001:3001 -n blue-green-ns &
+http://<Your_Instance_Public_Ip>:30001  -- Open the inbound rule for port 30001 in that EC2 Instance
+
+Forward the online-shop-green-deployment-service svc Port with Nodeport
+kubectl port-forward --address 0.0.0.0 svc/online-shop-green-deployment-service 30000:3000 -n blue-green-ns &
+http://<Your_Instance_Public_Ip>:30000  -- Open the inbound rule for port 30000 in that EC2 Instance
+
+Now, go to the online-shop-without-footer-blue-deployment.yaml manifest file and edit the service's selector field with online-shop-green selector.
+
+online-shop-without-footer-blue-deployment.yaml
+before --- spec:
+             selector:
+               app: online-shop-blue
+             type: NodePort
+
+after  --- spec:
+             selector:
+               app: online-shop-green
+             type: NodePort
+
+
+kubectl apply -f online-shop-without-footer-blue-deployment.yaml
+
+pkill -f "kubectl port-forward"  -- Kill all the port-forwarding using the command
+
+Now again, forward the online-shop-blue-deployment-service svc Port with Nodeport
+kubectl port-forward --address 0.0.0.0 svc/online-shop-blue-deployment-service 30001:3001 -n blue-green-ns &
+
+
+Check now, the application has added a new feature as with footer online shop, as it previously did not have a footer, but it is now added as a feature
+
+http://<Your_Instance_Public_Ip>:30001
+
+Reload the webpage, you will see with footer online web page this time at NodePort: 30001. This means you have successfully switched traffic from a blue environment to a green environment.
+
+
+Deleting Cluster:
+
+eksctl delete cluster --name <cluster-name> --region <region>
+
+
+---------------------------------------------------------------------------------------------------------------------------
+
+Rolling Update Deployment Strategy
+
+A rolling update in Kubernetes is a deployment strategy used to gradually replace the existing set of Pods with a new set of Pods one by one.
+
+This ensures that there is no downtime during the update process as the application continues to serve requests while the update is in progress.
+rolling-update-deployment.yaml
+
+How it works ?
+
+Pod Creation: kubernetes creates one new pod of newer version.
+Pod Termination: It terminates existing pods.
+
+Pro's -- Version is slowly released across instances
+         Convenient for stateful applications
+
+Con's -- Rollout/Rollback can take time
+         No control over traffic
+
+This deployment strategy is suitable for UAT,QA environment. For stateful applications suitable on production environment
+
+
+rolling-update-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: online-shop
+  name: online-shop
+  namespace: rolling-ns
+spec:
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1             # Optional - 1 extra Pod can be created during update
+      maxUnavailable: 0       # Optional - 0 unavailable Pods ensure 0 Downtime
+  selector:
+    matchLabels:
+      app: online-shop
+  template:
+    metadata:
+      labels:
+        app: online-shop
+    spec:
+      containers:
+      - name: online-shop
+        image: utkarsh1313/online_shop
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+
+
+rolling-update-svc.yml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: rolling-update-service
+  namespace: rolling-ns
+spec:
+  selector:
+    app: online-shop
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      nodePort: 30000
+
+rolling-namespace.yml
+
+
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: rolling-ns
+
+kubectl apply -f . --- Apply all the manifest files
+
+kubectl get all -n rolling-ns -- Run this command to get all resources created in rolling-ns namespace.
+
+Forward the svc port to the EC2 instance port 3000
+kubectl port-forward --address 0.0.0.0 svc/rolling-update-service 3000:3000 -n rolling-ns &
+
+Open the inbound rule for port 3000 in that EC2 Instance
+http://<Your_Instance_Public_Ip>:3000
+
+Open a new tab of terminal and connect your EC2 instance and run the watch command to monitor the deployment
+
+watch kubectl get pods -n rolling-ns
+
+You have successfully accessed the online_shop with footer webpage. Now edit the deployment file and change the image from online_shop to online_shop_without_footer and apply.
+
+before --- spec:
+             containers:
+             - name: online-shop
+               image: utkarsh1313/online_shop
+
+after --- spec:
+             containers:
+             - name: online-shop
+               image: utkarsh1313/online_shop_without_footer
+
+kubectl apply -f . 
+
+kubectl apply -f rolling-deployment.yml --- You can only apply deployment file
+
+Immediately go to second tab where ran watch command and monitor (It will delete all the pods and then create new ones).
+
+Deleting Cluster:
+
+eksctl delete cluster --name <cluster-name> --region <region>

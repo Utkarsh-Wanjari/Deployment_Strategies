@@ -59,3 +59,13 @@ eksctl create cluster --name irondome --node-type t2.medium --nodes 2 --region u
  eksctl delete cluster --name <cluster-name> --region <region>
 
 
+✅ Result
+You’ve successfully performed a rolling update in Kubernetes with:
+
+Zero downtime
+
+Live monitoring of pods
+
+Controlled update rollout
+
+

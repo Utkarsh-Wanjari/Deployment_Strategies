@@ -20,24 +20,24 @@ This directory demonstrates how to perform a rolling update in Kubernetes.
 
 ## 🚀 Steps to Deploy
 
-1. **Create Namespace**
+1. ### Create Namespace
 
    kubectl apply -f rolling-namespace.yml
 
-2.  **Deploy Application**
+2. ### Deploy Application
 
    kubectl apply -f rolling-update-deployment.yaml
    kubectl apply -f rolling-update-svc.yml
 
-3. **Port Forwarding**
+3. ### Port Forwarding
 
    kubectl port-forward --address 0.0.0.0 svc/rolling-update-service 3000:3000 -n rolling-ns &
 
-4. **Monitor** (open in new terminal)
+4. ### Monitor (open in new terminal)
 
    watch kubectl get pods -n rolling-ns
 
-5. **Rolling Update**
+5. ### Rolling Update
 
     Modify deployment image and re-apply:
     image: utkarsh1313/online_shop
@@ -47,8 +47,8 @@ This directory demonstrates how to perform a rolling update in Kubernetes.
     kubectl apply -f rolling-update-deployment.yaml
 
 
-🌐 Access
-URL: http://<EC2_PUBLIC_IP>:3000
+### 🌐 Access
+     URL: http://<EC2_PUBLIC_IP>:3000
 
 
 

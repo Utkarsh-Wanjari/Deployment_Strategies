@@ -1,4 +1,4 @@
-Deployment_Strategies
+Deployment_Strategies by Utkarsh-Wanjari
 
 Blue-Green Deployment Strategy
 
@@ -332,3 +332,4 @@ Immediately go to second tab where ran watch command and monitor (It will delete
 Deleting Cluster:
 
 eksctl delete cluster --name <cluster-name> --region <region>
+

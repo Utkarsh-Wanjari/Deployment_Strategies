@@ -37,6 +37,11 @@ sudo apt install docker.io -y
 sudo systemctl start docker && sudo systemctl enable docker
 
 # AWS CLI
+Install cli
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
 aws configure
 
 # kubectl
